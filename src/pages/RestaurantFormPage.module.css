@@ -1,0 +1,58 @@
+.page { padding: 24px; max-width: 900px; }
+.header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.back { background: none; border: none; color: #666; cursor: pointer; font-size: 14px; padding: 0; }
+.back:hover { color: #1a1a1a; }
+.pageTitle { font-size: 24px; font-weight: 700; margin: 0; color: #1a1a1a; }
+.loading { padding: 40px; color: #666; }
+.error { background: #ffebee; color: #c62828; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+
+.form { display: flex; flex-direction: column; gap: 0; }
+
+.section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+.sectionTitle { font-size: 16px; font-weight: 700; margin: 0 0 4px; color: #1a1a1a; }
+.hint { font-size: 13px; color: #888; margin: 0 0 16px; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid1 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #555; }
+.required { color: #e63946; }
+.fieldHint { font-size: 11px; color: #aaa; }
+
+.input {
+  padding: 9px 12px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.input:focus { border-color: #e63946; }
+
+.toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #1a1a1a; padding-top: 8px; }
+.toggle input { width: 16px; height: 16px; cursor: pointer; }
+
+.formFooter { display: flex; justify-content: flex-end; gap: 12px; padding-top: 4px; }
+
+.cancelBtn {
+  padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  background: #f5f5f5; color: #666; border: none; cursor: pointer;
+}
+.cancelBtn:hover { background: #e0e0e0; }
+
+.saveBtn {
+  padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  background: #e63946; color: #fff; border: none; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.saveBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.saveBtn:hover:not(:disabled) { opacity: 0.88; }
