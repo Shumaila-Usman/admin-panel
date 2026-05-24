@@ -42,12 +42,12 @@
   outline: none;
   transition: border-color 0.2s;
 }
-.input:focus { border-color: #e63946; }
+.input:focus { border-color: #2e7d32; }
 
 .button {
   width: 100%;
   padding: 12px;
-  background: #e63946;
+  background: #2e7d32;
   color: #fff;
   border: none;
   border-radius: 8px;

@@ -32,7 +32,13 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
-          <span className={styles.logo}>🍽️</span>
+          {/* Logo — place your logo at /public/logo.png */}
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className={styles.logoImg}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
           <div>
             <div className={styles.appName}>Restaurant Admin</div>
             <div className={styles.appSub}>Order Management</div>

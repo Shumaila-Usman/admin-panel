@@ -6,7 +6,7 @@
 .empty { text-align: center; padding: 60px 20px; color: #888; }
 
 .addButton {
-  background: #e63946; color: #fff; padding: 10px 20px;
+  background: #2e7d32; color: #fff; padding: 10px 20px;
   border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;
   transition: opacity 0.2s;
 }

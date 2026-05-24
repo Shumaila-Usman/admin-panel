@@ -17,12 +17,12 @@
   align-items: center;
   gap: 16px;
   box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  border-left: 4px solid #e63946;
+  border-left: 4px solid #2e7d32;
 }
 .stat_green { border-left-color: #4caf50; }
 .stat_blue  { border-left-color: #2196f3; }
 .stat_gray  { border-left-color: #9e9e9e; }
-.stat_red   { border-left-color: #e63946; }
+.stat_red   { border-left-color: #2e7d32; }
 
 .statIcon  { font-size: 28px; }
 .statValue { font-size: 28px; font-weight: 800; color: #1a1a1a; line-height: 1; }
