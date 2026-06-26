@@ -74,7 +74,7 @@ export default function WebsiteCredentialsPage() {
       if (newPassword) {
         payload.websiteAdminPassword = newPassword;
       }
-      await saveWebsiteCredentials(restaurantId, payload);
+      const result = await saveWebsiteCredentials(restaurantId, payload);
 
       // Update displayed current password if a new one was set
       if (newPassword) {
@@ -84,7 +84,17 @@ export default function WebsiteCredentialsPage() {
         setNewPassword('');
         setShowNewPw(false);
       }
-      setSuccessMsg('Website credentials saved successfully.');
+
+      // Show sync status
+      if (result.sync) {
+        if (result.sync.success) {
+          setSuccessMsg('Website credentials saved ✓ and password updated on the restaurant site.');
+        } else {
+          setSuccessMsg('Credentials saved in MCP, but site sync failed: ' + result.sync.message);
+        }
+      } else {
+        setSuccessMsg('Website credentials saved successfully.');
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {

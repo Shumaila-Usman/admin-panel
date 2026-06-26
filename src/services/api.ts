@@ -160,7 +160,8 @@ export async function saveWebsiteCredentials(
     websiteAdminIntegrationType?: string;
   }
 ) {
-  return apiFetch<{ message: string }>(`/api/admin/restaurants/${restaurantId}/website-credentials`, {
-    method: 'PATCH', body: JSON.stringify(data),
-  });
+  return apiFetch<{ message: string; sync?: { success: boolean; message: string } }>(
+    `/api/admin/restaurants/${restaurantId}/website-credentials`,
+    { method: 'PATCH', body: JSON.stringify(data) }
+  );
 }
