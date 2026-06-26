@@ -92,6 +92,7 @@ export default function RestaurantsPage() {
                     <div className={styles.actions}>
                       <Link to={`/restaurants/${r._id}/edit`} className={styles.btnEdit}>Edit</Link>
                       <Link to={`/restaurants/${r._id}/users`} className={styles.btnUsers}>Users</Link>
+                      <Link to={`/restaurants/${r._id}/website-credentials`} className={styles.btnWebsite}>Website Admin</Link>
                       <Link to={`/restaurants/${r._id}/orders`} className={styles.btnOrders}>Orders</Link>
                       <Link to={`/restaurants/${r._id}/customers`} className={styles.btnCustomers}>Customers</Link>
                       <button

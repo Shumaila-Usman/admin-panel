@@ -25,6 +25,13 @@ export interface Restaurant {
   isActive: boolean;
   printerEnabled: boolean;
   printerNotes: string | null;
+  // Website admin credentials (non-sensitive fields only — password returned via separate endpoint)
+  websiteAdminUrl: string | null;
+  websiteAdminLoginId: string | null;
+  websiteAdminEmail: string | null;
+  websiteAdminPasswordUpdatedAt: string | null;
+  websiteAdminNotes: string | null;
+  websiteAdminIntegrationType: 'manual' | 'api' | 'shared_db';
   createdAt: string;
   updatedAt: string;
 }
@@ -36,6 +43,7 @@ export interface RestaurantUser {
   loginId: string | null;
   email: string | null;
   isActive: boolean;
+  appPasswordUpdatedAt: string | null;
   createdAt: string;
 }
 
@@ -100,4 +108,23 @@ export interface RestaurantFormData {
   isActive: boolean;
   printerEnabled: boolean;
   printerNotes: string;
+}
+
+export interface AppCredentials {
+  loginId: string | null;
+  email: string | null;
+  currentAppPassword: string | null;
+  appPasswordUpdatedAt: string | null;
+  message: string | null;
+}
+
+export interface WebsiteCredentials {
+  websiteAdminUrl: string | null;
+  websiteAdminLoginId: string | null;
+  websiteAdminEmail: string | null;
+  websiteAdminPassword: string | null;
+  websiteAdminPasswordUpdatedAt: string | null;
+  websiteAdminNotes: string | null;
+  websiteAdminIntegrationType: 'manual' | 'api' | 'shared_db';
+  message: string | null;
 }

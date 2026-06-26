@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   fetchRestaurant, fetchRestaurantUsers, createRestaurantUser,
   updateRestaurantUser, changeUserPassword, deleteRestaurantUser,
+  getUserCredentials,
 } from '../services/api';
-import { Restaurant, RestaurantUser } from '../types';
+import { Restaurant, RestaurantUser, AppCredentials } from '../types';
 import styles from './RestaurantUsersPage.module.css';
 
 export default function RestaurantUsersPage() {
@@ -16,18 +17,31 @@ export default function RestaurantUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Create user form
+  // ── Create user form ──────────────────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newLoginId, setNewLoginId] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showNewCreatePw, setShowNewCreatePw] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Change password modal
-  const [pwUserId, setPwUserId] = useState<string | null>(null);
+  // ── Inline edit ───────────────────────────────────────────────────────────
+  const [editUserId, setEditUserId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editLoginId, setEditLoginId] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // ── App Password modal ────────────────────────────────────────────────────
+  const [credUser, setCredUser] = useState<RestaurantUser | null>(null);
+  const [credentials, setCredentials] = useState<AppCredentials | null>(null);
+  const [credLoading, setCredLoading] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [newPw, setNewPw] = useState('');
+  const [showNewPw, setShowNewPw] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
+  const [pwSuccess, setPwSuccess] = useState(false);
 
   async function load() {
     if (!restaurantId) return;
@@ -47,6 +61,7 @@ export default function RestaurantUsersPage() {
 
   useEffect(() => { load(); }, [restaurantId]);
 
+  // ── Create ────────────────────────────────────────────────────────────────
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!restaurantId) return;
@@ -76,6 +91,42 @@ export default function RestaurantUsersPage() {
     }
   }
 
+  // ── Inline edit ───────────────────────────────────────────────────────────
+  function startEdit(u: RestaurantUser) {
+    setEditUserId(u._id);
+    setEditName(u.name);
+    setEditLoginId(u.loginId || '');
+    setEditEmail(u.email || '');
+  }
+
+  function cancelEdit() {
+    setEditUserId(null);
+    setEditName(''); setEditLoginId(''); setEditEmail('');
+  }
+
+  async function handleSaveEdit(u: RestaurantUser) {
+    if (!editName.trim()) { alert('Name is required'); return; }
+    if (!editLoginId.trim() && !editEmail.trim()) {
+      alert('At least one of Login ID or Email is required');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const { user } = await updateRestaurantUser(u._id, {
+        name: editName.trim(),
+        loginId: editLoginId.trim() || undefined,
+        email: editEmail.trim() || undefined,
+      });
+      setUsers((prev) => prev.map((x) => (x._id === u._id ? user : x)));
+      cancelEdit();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to update');
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  // ── Toggle active ─────────────────────────────────────────────────────────
   async function handleToggleActive(u: RestaurantUser) {
     try {
       const { user } = await updateRestaurantUser(u._id, { isActive: !u.isActive });
@@ -85,8 +136,9 @@ export default function RestaurantUsersPage() {
     }
   }
 
+  // ── Delete ────────────────────────────────────────────────────────────────
   async function handleDelete(u: RestaurantUser) {
-    if (!confirm(`Delete user "${u.loginId || u.email}"?`)) return;
+    if (!confirm(`Delete user "${u.loginId || u.email}"? This cannot be undone.`)) return;
     try {
       await deleteRestaurantUser(u._id);
       setUsers((prev) => prev.filter((x) => x._id !== u._id));
@@ -95,16 +147,64 @@ export default function RestaurantUsersPage() {
     }
   }
 
+  // ── Open app password modal ───────────────────────────────────────────────
+  async function openCredModal(u: RestaurantUser) {
+    setCredUser(u);
+    setCredentials(null);
+    setNewPw('');
+    setShowCurrentPw(false);
+    setShowNewPw(false);
+    setPwSuccess(false);
+    setCredLoading(true);
+    try {
+      const creds = await getUserCredentials(u._id);
+      setCredentials(creds);
+    } catch (err: unknown) {
+      // Show error in modal rather than crashing — backend now returns 200 always,
+      // so this only fires on network errors or auth failures
+      const msg = err instanceof Error ? err.message : 'Failed to load credentials.';
+      setCredentials({
+        loginId: u.loginId,
+        email: u.email,
+        currentAppPassword: null,
+        appPasswordUpdatedAt: null,
+        message: msg,
+      });
+    } finally {
+      setCredLoading(false);
+    }
+  }
+
+  // ── Save new app password ─────────────────────────────────────────────────
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (!pwUserId) return;
+    if (!credUser) return;
     if (newPw.length < 3) { alert('Password must be at least 3 characters'); return; }
     setSavingPw(true);
     try {
-      await changeUserPassword(pwUserId, newPw);
-      setPwUserId(null);
+      await changeUserPassword(credUser._id, newPw);
+
+      // Re-fetch from backend so the displayed password is always the real stored value
+      try {
+        const freshCreds = await getUserCredentials(credUser._id);
+        setCredentials(freshCreds);
+      } catch {
+        // Fallback: update local state if re-fetch fails
+        setCredentials((prev) => prev ? {
+          ...prev,
+          currentAppPassword: newPw,
+          appPasswordUpdatedAt: new Date().toISOString(),
+          message: null,
+        } : prev);
+      }
+
+      setUsers((prev) => prev.map((x) =>
+        x._id === credUser._id ? { ...x, appPasswordUpdatedAt: new Date().toISOString() } : x
+      ));
       setNewPw('');
-      alert('Password changed successfully');
+      setShowNewPw(false);
+      setShowCurrentPw(false);
+      setPwSuccess(true);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
@@ -140,17 +240,21 @@ export default function RestaurantUsersPage() {
               onChange={(e) => setNewLoginId(e.target.value.toLowerCase().replace(/\s/g, '_'))}
             />
             <input className={styles.input} type="email" placeholder="Email (optional)" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-            <input
-              className={styles.input}
-              type="password"
-              placeholder="Password (min 3 chars, e.g. 123)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              minLength={3}
-            />
-            <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0' }}>
-              At least one of Login ID or Email is required. Owner can login with either.
+            <div className={styles.pwRow}>
+              <input
+                className={styles.input}
+                type={showNewCreatePw ? 'text' : 'password'}
+                placeholder="Password (min 3 chars)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required minLength={3}
+              />
+              <button type="button" className={styles.togglePwBtn} onClick={() => setShowNewCreatePw(v => !v)}>
+                {showNewCreatePw ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            <p style={{ fontSize: 12, color: '#888', margin: '2px 0 0' }}>
+              At least one of Login ID or Email is required.
             </p>
             <div className={styles.createActions}>
               <button type="button" className={styles.cancelBtn} onClick={() => setShowCreate(false)}>Cancel</button>
@@ -179,64 +283,139 @@ export default function RestaurantUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr key={u._id}>
-                  <td><strong>{u.name}</strong></td>
-                  <td><code style={{ fontSize: 13 }}>{u.loginId || '—'}</code></td>
-                  <td>{u.email || '—'}</td>
-                  <td>
-                    <span className={`${styles.badge} ${u.isActive ? styles.active : styles.inactive}`}>
-                      {u.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    <div className={styles.actions}>
-                      <button className={styles.btnPw} onClick={() => { setPwUserId(u._id); setNewPw(''); }}>
-                        Reset Password
-                      </button>
-                      <button
-                        className={u.isActive ? styles.btnDeactivate : styles.btnActivate}
-                        onClick={() => handleToggleActive(u)}
-                      >
-                        {u.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button className={styles.btnDelete} onClick={() => handleDelete(u)}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {users.map((u) => {
+                const isEditing = editUserId === u._id;
+                return (
+                  <tr key={u._id}>
+                    <td>
+                      {isEditing
+                        ? <input className={styles.inlineInput} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Full name *" autoFocus />
+                        : <strong>{u.name}</strong>}
+                    </td>
+                    <td>
+                      {isEditing
+                        ? <input className={styles.inlineInput} value={editLoginId} onChange={(e) => setEditLoginId(e.target.value.toLowerCase().replace(/\s/g, '_'))} placeholder="Login ID" />
+                        : <code style={{ fontSize: 13 }}>{u.loginId || '—'}</code>}
+                    </td>
+                    <td>
+                      {isEditing
+                        ? <input className={styles.inlineInput} type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email (optional)" />
+                        : (u.email || '—')}
+                    </td>
+                    <td>
+                      <span className={`${styles.badge} ${u.isActive ? styles.active : styles.inactive}`}>
+                        {u.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      {isEditing ? (
+                        <div className={styles.actions}>
+                          <button className={styles.btnSaveEdit} onClick={() => handleSaveEdit(u)} disabled={savingEdit}>
+                            {savingEdit ? 'Saving…' : '✓ Save'}
+                          </button>
+                          <button className={styles.btnCancelEdit} onClick={cancelEdit}>Cancel</button>
+                        </div>
+                      ) : (
+                        <div className={styles.actions}>
+                          <button className={styles.btnEdit} onClick={() => startEdit(u)}>✏️ Edit</button>
+                          <button className={styles.btnPw} onClick={() => openCredModal(u)}>🔑 App Password</button>
+                          <button className={u.isActive ? styles.btnDeactivate : styles.btnActivate} onClick={() => handleToggleActive(u)}>
+                            {u.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button className={styles.btnDelete} onClick={() => handleDelete(u)}>Delete</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Change password modal */}
-      {pwUserId && (
-        <div className={styles.modalOverlay}>
+      {/* App Password Modal */}
+      {credUser && (
+        <div className={styles.modalOverlay} onClick={(e) => { if (e.target === e.currentTarget) setCredUser(null); }}>
           <div className={styles.modal}>
-            <h3 className={styles.modalTitle}>Reset Password</h3>
-            <p style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
-              Set a new password for this login. Minimum 3 characters.
-            </p>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>🔑 App Login Password</h3>
+              <button className={styles.modalClose} onClick={() => setCredUser(null)}>✕</button>
+            </div>
+            <p className={styles.modalSubtitle}>{credUser.name} — <code>{credUser.loginId || credUser.email}</code></p>
+
+            {/* Current credentials block */}
+            <div className={styles.credBlock}>
+              <div className={styles.credRow}>
+                <span className={styles.credLabel}>Current App Login ID</span>
+                <span className={styles.credValue}>{credentials?.loginId || credUser.loginId || '—'}</span>
+              </div>
+              <div className={styles.credRow}>
+                <span className={styles.credLabel}>Current Email</span>
+                <span className={styles.credValue}>{credentials?.email || credUser.email || '—'}</span>
+              </div>
+              <div className={styles.credRowPw}>
+                <span className={styles.credLabel}>Current App Password</span>
+                {credLoading ? (
+                  <span className={styles.credLoading}>Loading…</span>
+                ) : credentials?.currentAppPassword ? (
+                  <div className={styles.pwDisplay}>
+                    <span className={styles.credValueMono}>
+                      {showCurrentPw ? credentials.currentAppPassword : '•'.repeat(credentials.currentAppPassword.length || 8)}
+                    </span>
+                    <button className={styles.togglePwBtn} onClick={() => setShowCurrentPw(v => !v)}>
+                      {showCurrentPw ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                ) : (
+                  <span className={styles.credUnavailable}>
+                    {credentials?.message || 'Current password not available for older records. Please set a new password below.'}
+                  </span>
+                )}
+              </div>
+              {credentials?.appPasswordUpdatedAt && (
+                <p className={styles.credUpdated}>
+                  Last updated: {new Date(credentials.appPasswordUpdatedAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+
+            <div className={styles.divider} />
+
+            {/* Success message */}
+            {pwSuccess && (
+              <div className={styles.successMsg}>✓ Password updated successfully</div>
+            )}
+
+            {/* New password form */}
             <form onSubmit={handleChangePassword}>
-              <input
-                className={styles.input}
-                type="password"
-                placeholder="New password (min 3 chars)"
-                value={newPw}
-                onChange={(e) => setNewPw(e.target.value)}
-                required
-                minLength={3}
-                autoFocus
-              />
+              <label className={styles.fieldLabel}>Change App Password</label>
+              <div className={styles.pwRow}>
+                <input
+                  className={styles.input}
+                  type={showNewPw ? 'text' : 'password'}
+                  placeholder="New password (min 3 characters)"
+                  value={newPw}
+                  onChange={(e) => { setNewPw(e.target.value); setPwSuccess(false); }}
+                  required minLength={3}
+                  autoFocus
+                />
+                <button type="button" className={styles.togglePwBtn} onClick={() => setShowNewPw(v => !v)}>
+                  {showNewPw ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <div className={styles.createActions}>
-                <button type="button" className={styles.cancelBtn} onClick={() => setPwUserId(null)}>Cancel</button>
+                <button type="button" className={styles.cancelBtn} onClick={() => setCredUser(null)}>Close</button>
                 <button type="submit" className={styles.saveBtn} disabled={savingPw}>
-                  {savingPw ? 'Saving...' : 'Save Password'}
+                  {savingPw ? 'Saving...' : 'Save New Password'}
                 </button>
               </div>
             </form>
+
+            <p className={styles.securityNote}>
+              🔒 Password visibility is available only to authorized MCP admins.
+            </p>
           </div>
         </div>
       )}

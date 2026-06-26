@@ -1,4 +1,4 @@
-import { Restaurant, RestaurantUser, Order, RestaurantFormData, Customer } from '../types';
+import { Restaurant, RestaurantUser, Order, RestaurantFormData, Customer, AppCredentials, WebsiteCredentials } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const TOKEN_KEY = 'admin_token';
@@ -89,6 +89,10 @@ export async function changeUserPassword(userId: string, password: string) {
   });
 }
 
+export async function getUserCredentials(userId: string) {
+  return apiFetch<AppCredentials>(`/api/admin/users/${userId}/credentials`);
+}
+
 export async function deleteRestaurantUser(userId: string) {
   return apiFetch<{ message: string }>(`/api/admin/users/${userId}`, { method: 'DELETE' });
 }
@@ -136,5 +140,27 @@ export async function sendTestNotification(restaurantId: string, title?: string,
   return apiFetch<{ success: boolean; results: unknown[] }>('/api/debug/send-test-notification', {
     method: 'POST',
     body: JSON.stringify({ restaurantId, title, body }),
+  });
+}
+
+// ─── Website Credentials ──────────────────────────────────────────────────────
+
+export async function fetchWebsiteCredentials(restaurantId: string) {
+  return apiFetch<WebsiteCredentials>(`/api/admin/restaurants/${restaurantId}/website-credentials`);
+}
+
+export async function saveWebsiteCredentials(
+  restaurantId: string,
+  data: {
+    websiteAdminUrl?: string;
+    websiteAdminLoginId?: string;
+    websiteAdminEmail?: string;
+    websiteAdminPassword?: string;
+    websiteAdminNotes?: string;
+    websiteAdminIntegrationType?: string;
+  }
+) {
+  return apiFetch<{ message: string }>(`/api/admin/restaurants/${restaurantId}/website-credentials`, {
+    method: 'PATCH', body: JSON.stringify(data),
   });
 }

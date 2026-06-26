@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import RestaurantsPage from './pages/RestaurantsPage';
 import RestaurantFormPage from './pages/RestaurantFormPage';
 import RestaurantUsersPage from './pages/RestaurantUsersPage';
+import WebsiteCredentialsPage from './pages/WebsiteCredentialsPage';
 import OrdersPage from './pages/OrdersPage';
 import LiveOrdersPage from './pages/LiveOrdersPage';
 import CustomersPage from './pages/CustomersPage';
@@ -37,6 +38,7 @@ function AppRoutes() {
         <Route path="restaurants/new" element={<RestaurantFormPage />} />
         <Route path="restaurants/:id/edit" element={<RestaurantFormPage />} />
         <Route path="restaurants/:restaurantId/users" element={<RestaurantUsersPage />} />
+        <Route path="restaurants/:restaurantId/website-credentials" element={<WebsiteCredentialsPage />} />
         <Route path="restaurants/:restaurantId/orders" element={<OrdersPage />} />
         <Route path="restaurants/:restaurantId/customers" element={<CustomersPage />} />
         <Route path="orders" element={<OrdersPage />} />
